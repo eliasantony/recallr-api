@@ -1,16 +1,14 @@
 # Dockerfile
 FROM node:20-alpine
 
-# ffmpeg + yt-dlp + python (yt-dlp dependency path)
-RUN apk add --no-cache ffmpeg curl python3 py3-pip && \
-    pip3 install --no-cache-dir yt-dlp
+# ffmpeg + curl + yt-dlp (Alpine package pulls python3 automatically)
+RUN apk add --no-cache ffmpeg curl yt-dlp
 
+# app files
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
-
-COPY src ./src
-COPY .env ./.env
+COPY . .
 
 ENV NODE_ENV=production
 EXPOSE 8080
