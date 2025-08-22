@@ -446,6 +446,119 @@ app.post("/search", async (req, res) => {
   }
 });
 
+/** POST /collections {name,description?,color?} -> {id} */
+app.post("/collections", async (req, res) => {
+  try {
+    const { name, description = null, color = null } = req.body || {};
+    if (!name) return res.status(400).json({ error: "Missing name" });
+    const id = uuidv4();
+    await pool.query(
+      "INSERT INTO collections (id,name,description,color) VALUES ($1,$2,$3,$4)",
+      [id, name, description, color]
+    );
+    res.json({ id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** GET /collections?page?&page_size? */
+app.get("/collections", async (req, res) => {
+  try {
+    const pageSize = Math.min(Math.max(Number(req.query.page_size) || 20, 1), 100);
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const offset = (page - 1) * pageSize;
+    const { rows } = await pool.query(
+      `SELECT id,name,description,color,created_at,updated_at
+       FROM collections
+       ORDER BY created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [pageSize, offset]
+    );
+    res.json({ items: rows, page, page_size: pageSize });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** GET /collections/:id */
+app.get("/collections/:id", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT id,name,description,color,created_at,updated_at FROM collections WHERE id=$1",
+      [req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: "Not found" });
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** PATCH /collections/:id {name?,description?,color?} */
+app.patch("/collections/:id", async (req, res) => {
+  try {
+    const { name, description, color } = req.body || {};
+    await pool.query(
+      `UPDATE collections
+       SET name=COALESCE($2,name),
+           description=COALESCE($3,description),
+           color=COALESCE($4,color),
+           updated_at=now()
+       WHERE id=$1`,
+      [req.params.id, name ?? null, description ?? null, color ?? null]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** DELETE /collections/:id */
+app.delete("/collections/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM collections WHERE id=$1", [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** GET /collections/:id/items?page?&page_size? */
+app.get("/collections/:id/items", async (req, res) => {
+  try {
+    const pageSize = Math.min(Math.max(Number(req.query.page_size) || 24, 1), 100);
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const offset = (page - 1) * pageSize;
+
+    const { rows } = await pool.query(
+      `SELECT i.id, i.title, i.platform, i.url, i.topics, i.is_recipe,
+              i.author_name, i.published_at, i.created_at, i.thumb_url, i.summary
+       FROM collection_items ci
+       JOIN items i ON i.id = ci.item_id
+       WHERE ci.collection_id=$1
+       ORDER BY ci.added_at DESC
+       LIMIT $2 OFFSET $3`,
+      [req.params.id, pageSize, offset]
+    );
+    res.json({ items: rows, page, page_size: pageSize });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** POST /collections/:id/items { item_id } */
+app.post("/collections/:id/items", async (req, res) => {
+  try {
+    const { item_id } = req.body || {};
+    if (!item_id) return res.status(400).json({ error: "Missing item_id" });
+    await pool.query(
+      "INSERT INTO collection_items (collection_id,item_id) VALUES ($1,$2) ON CONFLICT DO NOTHING",
+      [req.params.id, item_id]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** DELETE /collections/:id/items/:item_id */
+app.delete("/collections/:id/items/:item_id", async (req, res) => {
+  try {
+    await pool.query(
+      "DELETE FROM collection_items WHERE collection_id=$1 AND item_id=$2",
+      [req.params.id, req.params.item_id]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ────────────────────────────────────────────────────────────────────────────────
 // Optional: sign a GCS object for temporary read access.
 // GET /media/sign?gcsUri=gs://bucket/path/to/file.mp4&expires=900
