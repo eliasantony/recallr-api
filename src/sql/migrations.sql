@@ -124,3 +124,45 @@ CREATE TABLE IF NOT EXISTS collection_items (
   added_at TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (collection_id, item_id)
 );
+
+-- --- Job robustness: lease + heartbeat + attempts --------------------------
+
+-- Add robustness columns if missing
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_name='jobs' AND column_name='lease_owner') THEN
+    ALTER TABLE jobs
+      ADD COLUMN lease_owner TEXT,
+      ADD COLUMN lease_expires_at TIMESTAMPTZ,
+      ADD COLUMN last_heartbeat_at TIMESTAMPTZ,
+      ADD COLUMN attempts INT NOT NULL DEFAULT 0,
+      ADD COLUMN max_attempts INT NOT NULL DEFAULT 3;
+  END IF;
+END $$;
+
+-- Helpful indexes
+CREATE INDEX IF NOT EXISTS jobs_status_lease_idx
+  ON jobs (status, lease_expires_at);
+
+CREATE INDEX IF NOT EXISTS jobs_created_idx
+  ON jobs (created_at);
+
+-- Optional: a function to mark stale running jobs as timed out (call via cron)
+CREATE OR REPLACE FUNCTION jobs_timeout_stale(p_grace_seconds INT DEFAULT 300)
+RETURNS INT LANGUAGE plpgsql AS $$
+DECLARE
+  v_count INT;
+BEGIN
+  UPDATE jobs
+  SET status='error',
+      error=COALESCE(error, '') || CASE WHEN error IS NULL OR error = '' THEN '' ELSE ' | ' END || 'timeout',
+      lease_owner=NULL,
+      lease_expires_at=NULL,
+      updated_at=NOW()
+  WHERE status='running'
+    AND (last_heartbeat_at IS NULL OR last_heartbeat_at < NOW() - make_interval(secs => p_grace_seconds));
+
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END $$;
