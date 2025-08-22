@@ -1,0 +1,7 @@
+pgdata/
+data/
+downloads/
+secrets/
+node_modules/
+.env
+

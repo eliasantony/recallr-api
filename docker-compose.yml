@@ -1,0 +1,82 @@
+version: "3.9"
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: recallr-db
+    environment:
+      POSTGRES_DB: recipes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d recipes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- run migrations once ---
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: recallr-migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/recipes
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/sa.json
+    volumes:
+      - ./secrets:/secrets:ro
+    command: ["node", "src/migrate.mjs"]
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: recallr-api
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/recipes
+      DOWNLOAD_DIR: /data/downloads
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/sa.json
+    volumes:
+      - ./data:/data
+      - ./secrets:/secrets:ro
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: recallr-worker
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/recipes
+      DOWNLOAD_DIR: /data/downloads
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/sa.json
+    volumes:
+      - ./data:/data
+      - ./secrets:/secrets:ro
+    command: ["node", "src/worker.mjs"]
+    restart: unless-stopped
