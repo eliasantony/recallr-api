@@ -2,7 +2,7 @@ import "dotenv/config";
 import { withTx, pool } from "./db.mjs";
 import { runPipeline, toPgVectorLiteral, EMBED_DIM } from "./pipeline.mjs";
 // import extract if it lives elsewhere
-import { extract } from "./extract.mjs"; // adjust path if needed
+import { extract } from './scraper.mjs'
 
 const WORKER_ID = process.env.WORKER_ID || `${process.pid}`;
 const LEASE_SECONDS = Number(process.env.LEASE_SECONDS || 120);  // lease window
