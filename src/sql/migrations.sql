@@ -108,3 +108,19 @@ BEGIN
     ALTER TABLE items ADD COLUMN summary TEXT;
   END IF;
 END $$;
+
+CREATE TABLE IF NOT EXISTS collections (
+  id UUID PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  color TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS collection_items (
+  collection_id UUID REFERENCES collections(id) ON DELETE CASCADE,
+  item_id TEXT REFERENCES items(id) ON DELETE CASCADE,
+  added_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (collection_id, item_id)
+);
