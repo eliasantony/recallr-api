@@ -50,6 +50,7 @@ const DOWNLOAD_DIR = process.env.DOWNLOAD_DIR || "downloads";
 const COOKIES_FILE = process.env.COOKIES_FILE;
 const ALLOW_DOWNLOAD = String(process.env.ALLOW_DOWNLOAD || "true").toLowerCase() === "true";
 const ALLOWED_HOSTS = (process.env.ALLOWED_HOSTS || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+const MAX_VIDEO_SECONDS = Number(process.env.MAX_VIDEO_SECONDS || 120);
 
 // static serving for local testing
 app.use("/media", express.static(path.resolve(DOWNLOAD_DIR)));
