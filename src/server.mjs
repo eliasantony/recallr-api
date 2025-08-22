@@ -178,7 +178,7 @@ app.post("/ingest", async (req, res) => {
     if (!url) return res.status(400).json({ error: "Missing url" });
 
     try {
-      const meta = await extract(url, { downloadVideo: false, wantTranscript: false, refresh: false });
+      const meta = await extract(url, { downloadVideo: true, wantTranscript: false, refresh: false });
       if (meta?.duration_sec && meta.duration_sec > MAX_VIDEO_SECONDS) {
         return res.status(400).json({
           error: `Video too long (${meta.duration_sec}s > ${MAX_VIDEO_SECONDS}s).`

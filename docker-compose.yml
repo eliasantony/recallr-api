@@ -52,6 +52,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/recipes
       DOWNLOAD_DIR: /data/downloads
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/sa.json
+      USE_GEMINI: "true"
     volumes:
       - ./data:/data
       - ./secrets:/secrets:ro
@@ -75,6 +76,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/recipes
       DOWNLOAD_DIR: /data/downloads
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/sa.json
+      ALLOW_DOWNLOAD: "true" 
     volumes:
       - ./data:/data
       - ./secrets:/secrets:ro

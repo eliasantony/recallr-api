@@ -160,7 +160,7 @@ async function workOnce() {
     startHeartbeat();
 
     // quick pre-probe for duration limits
-    const metaProbe = await extract(job.url, { downloadVideo: false, wantTranscript: false, refresh: false });
+    const metaProbe = await extract(job.url, { downloadVideo: true, wantTranscript: false, refresh: false });
     const maxSec = Number(process.env.MAX_VIDEO_SECONDS || 120);
     if (metaProbe?.duration_sec && metaProbe.duration_sec > maxSec) {
       await pool.query(`
