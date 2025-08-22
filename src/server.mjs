@@ -176,6 +176,15 @@ app.post("/ingest", async (req, res) => {
     const { url, allow_inference = true, refresh = false } = req.body || {};
     if (!url) return res.status(400).json({ error: "Missing url" });
 
+    try {
+      const meta = await extract(url, { downloadVideo: false, wantTranscript: false, refresh: false });
+      if (meta?.duration_sec && meta.duration_sec > MAX_VIDEO_SECONDS) {
+        return res.status(400).json({
+          error: `Video too long (${meta.duration_sec}s > ${MAX_VIDEO_SECONDS}s).`
+        });
+      }
+    } catch { /* ignore extract errors here */}
+
     // idempotent by URL unless refresh=true
     if (!refresh) {
       const existing = await pool.query(
