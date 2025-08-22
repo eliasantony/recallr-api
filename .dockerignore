@@ -1,0 +1,15 @@
+# never send these to the Docker build context
+pgdata/
+data/
+downloads/
+secrets/
+cache/
+downloads.json/
+downloads/**
+
+node_modules/
+.git/
+.gitignore
+.DS_Store
+*.log
+.env
