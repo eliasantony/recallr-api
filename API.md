@@ -4,7 +4,8 @@ This document provides comprehensive documentation for all API endpoints in the 
 
 ## Base URL
 
-The API runs on `http://localhost:8080` by default (configurable via `PORT` environment variable).
+The API runs on `http://192.168.0.150:8080` by default (configurable via `PORT` environment variable).
+If available use the `https://recallr.foodfellas.app` domain to make requests.
 
 ## Authentication
 
